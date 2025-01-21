@@ -12,5 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
     libxext6
+	
+EXPOSE 5000
 
-CMD ["python3", "app.py"]
+ENV FLASK_APP=app.py
+
+CMD ["flask", "run", "--host=0.0.0.0"]
