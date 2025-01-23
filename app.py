@@ -144,8 +144,7 @@ class LeffaPredictor(object):
             guidance_scale=scale,
             seed=seed,
             repaint=vt_repaint,)
-        gen_image_np = output["generated_image"][0] 
-        gen_image = Image.fromarray(gen_image_np) 
+        gen_image_np = output["generated_image"][0]        
         # gen_image.save("gen_image.png")
         return gen_image, np.array(mask), np.array(densepose) 
 
