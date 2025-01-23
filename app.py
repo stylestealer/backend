@@ -144,9 +144,9 @@ class LeffaPredictor(object):
             guidance_scale=scale,
             seed=seed,
             repaint=vt_repaint,)
-        gen_image_np = output["generated_image"][0]        
+        gen_image = output["generated_image"][0]
         # gen_image.save("gen_image.png")
-        return gen_image, np.array(mask), np.array(densepose) 
+        return np.array(gen_image), np.array(mask), np.array(densepose)
 
     def leffa_predict_vt(self, src_image_path, ref_image_path, ref_acceleration, step, scale, seed, vt_model_type, vt_garment_type, vt_repaint):
         return self.leffa_predict(src_image_path, ref_image_path, "virtual_tryon", ref_acceleration, step, scale, seed, vt_model_type, vt_garment_type, vt_repaint)
@@ -154,12 +154,15 @@ class LeffaPredictor(object):
     def leffa_predict_pt(self, src_image_path, ref_image_path, ref_acceleration, step, scale, seed):
         return self.leffa_predict(src_image_path, ref_image_path, "pose_transfer", ref_acceleration, step, scale, seed)
 
+
 app = Flask(__name__)
 leffa_predictor = LeffaPredictor()
+
 
 @app.route("/")
 def health_check():
     return jsonify({"status": "ok", "message": "Leffa inference API running."})
+
 
 @app.route("/virtual_tryon", methods=["POST"])
 def virtual_tryon():
@@ -174,12 +177,8 @@ def virtual_tryon():
     if "src_image" not in request.files or "ref_image" not in request.files:
         return jsonify({"error": "Missing src_image or ref_image in form data"}), 400
 
-    src_image_file = request.files["src_image"] 
-    ref_image_file = request.files["ref_image"] 
-
-    src_image_path = BytesIO(src_image_file.read()) 
-    ref_image_path = BytesIO(ref_image_file.read()) 
-
+    src_image = request.files["src_image"]
+    ref_image = request.files["ref_image"]
 
     # 2) Extract optional parameters
     ref_acceleration = request.form.get("ref_acceleration", "False") == "True"
@@ -191,23 +190,32 @@ def virtual_tryon():
     vt_repaint = request.form.get("vt_repaint", "False") == "True"
 
     # 3) Run inference
-    gen_image, mask, densepose = leffa_predictor.leffa_predict_vt(
-        src_image_path, ref_image_path,
-        ref_acceleration=ref_acceleration,
-        step=step,
-        scale=scale,
-        seed=seed,
-        vt_model_type=vt_model_type,
-        vt_garment_type=vt_garment_type,
-        vt_repaint=vt_repaint
-    )
+    try:
+        gen_image_np, mask, densepose = leffa_predictor.leffa_predict_vt(
+            src_image, ref_image,
+            ref_acceleration=ref_acceleration,
+            step=step,
+            scale=scale,
+            seed=seed,
+            vt_model_type=vt_model_type,
+            vt_garment_type=vt_garment_type,
+            vt_repaint=vt_repaint
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    # 4) Return the generated image (and optionally mask/densepose)
-    # Example: return the generated image directly as a PNG file
+    # 4) Convert numpy array to PIL Image
+    try:
+        gen_image_pil = Image.fromarray(gen_image_np)
+    except Exception as e:
+        return jsonify({"error": f"Failed to convert generated image: {str(e)}"}), 500
+
+    # 5) Return the generated image (and optionally mask/densepose)
     img_io = BytesIO()
-    gen_image.save(img_io, format="PNG")
+    gen_image_pil.save(img_io, format="PNG")
     img_io.seek(0)
     return send_file(img_io, mimetype="image/png")
+
 
 @app.route("/pose_transfer", methods=["POST"])
 def pose_transfer():
@@ -222,11 +230,8 @@ def pose_transfer():
     if "src_image" not in request.files or "ref_image" not in request.files:
         return jsonify({"error": "Missing src_image or ref_image in form data"}), 400
 
-    src_image_file = request.files["src_image"]
-    ref_image_file = request.files["ref_image"]
-
-    src_image_path = BytesIO(src_image_file.read()) 
-    ref_image_path = BytesIO(ref_image_file.read())
+    src_image = request.files["src_image"]
+    ref_image = request.files["ref_image"]
 
     # 2) Extract optional parameters
     ref_acceleration = request.form.get("ref_acceleration", "False") == "True"
@@ -235,19 +240,28 @@ def pose_transfer():
     seed = int(request.form.get("seed", 42))
 
     # 3) Run inference
-    gen_image, mask, densepose = leffa_predictor.leffa_predict_pt(
-        src_image_path, ref_image_path,
-        ref_acceleration=ref_acceleration,
-        step=step,
-        scale=scale,
-        seed=seed
-    )
+    try:
+        gen_image_np, mask, densepose = leffa_predictor.leffa_predict_pt(
+            src_image, ref_image,
+            ref_acceleration=ref_acceleration,
+            step=step,
+            scale=scale,
+            seed=seed
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    # 4) Return the generated image
+    # 4) Convert numpy array to PIL Image
+    try:
+        gen_image_pil = Image.fromarray(gen_image_np)
+    except Exception as e:
+        return jsonify({"error": f"Failed to convert generated image: {str(e)}"}), 500
+
+    # 5) Return the generated image
     img_io = BytesIO()
-    gen_image.save(img_io, format="PNG")
+    gen_image_pil.save(img_io, format="PNG")
     img_io.seek(0)
     return send_file(img_io, mimetype="image/png")
-
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
