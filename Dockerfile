@@ -13,8 +13,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6
 	
-EXPOSE 5000
-
-ENV FLASK_APP=app.py
-
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["python", "app.py"]

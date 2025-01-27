@@ -29,4 +29,3 @@ torchmetrics
 torchvision
 tqdm
 transformers
-Flask==3.0.3
