@@ -13,4 +13,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6
 	
-CMD ["python", "app.py"]
+CMD ["python3", "app.py"]
