@@ -35,28 +35,69 @@ def upload_via_put(local_path, upload_url):
     response.raise_for_status()
     print(f"Upload success (status code {response.status_code}).")
 
-def terminate_vm():
-    """
-    Optionally terminate a VM via Cudo's API, if environment variables are set:
-      TERMINATE_URL   e.g. https://rest.compute.cudo.org/v1/projects/PROJECT_ID/vms/VM_ID/terminate
-      TERMINATE_TOKEN e.g. your bearer token
-    """
-    terminate_url = os.environ.get("TERMINATE_URL")
-    token = os.environ.get("TERMINATE_TOKEN")
-    if not terminate_url or not token:
-        print("Skipping VM termination (TERMINATE_URL or TERMINATE_TOKEN not set).")
-        return False
+import os
+import requests
 
-    print(f"Terminating VM via {terminate_url}...")
+def terminate_vm():
+    api_key = os.environ.get("API_KEY")
+    vm_name = os.environ.get("VM_NAME")
+    get_url = os.environ.get("API_URL")
+    if not api_key or not vm_name or not get_url:
+        print("Skipping VM termination (API_KEY or VM_NAME or API_URL not set).")
+        return False
+    
     headers = {
-        "Authorization": f"bearer {token}",
-        "Accept": "application/json"
+        "accept": "application/json",
+        "api_key": api_key
     }
+
+    print(f"Retrieving instances from {get_url}...")
     try:
-        resp = requests.post(terminate_url, headers=headers)
-        resp.raise_for_status()
-        print("VM termination initiated.")
+        # Step 1: Retrieve instances to find the VM by name
+        get_response = requests.get(get_url, headers=headers)
+        get_response.raise_for_status()
+
+        data = get_response.json()
+        if not data.get("status"):
+            print(f"GET request failed: {data.get('message', 'No error message provided.')}")
+            return False
+
+        instances = data.get("instances", [])
+        if not instances:
+            print("No instances found in the response.")
+            return False
+
+        # Find the instance with the matching name
+        target_instance = None
+        for instance in instances:
+            if instance.get("name") == vm_name:
+                target_instance = instance
+                break
+
+        if not target_instance:
+            print(f"No instance found with name '{vm_name}'.")
+            return False
+
+        instance_id = target_instance.get("id")
+        if instance_id is None:
+            print("Instance ID not found in the instance data.")
+            return False
+
+        # Step 2: Delete the identified instance
+        delete_url = f"{get_url}/{instance_id}"
+        print(f"Terminating VM with ID {instance_id} via {delete_url}...")
+
+        delete_response = requests.delete(delete_url, headers=headers)
+        delete_response.raise_for_status()
+
+        delete_data = delete_response.json()
+        if not delete_data.get("status"):
+            print(f"DELETE request failed: {delete_data.get('message', 'No error message provided.')}")
+            return False
+
+        print("VM termination successful.")
         return True
+
     except requests.exceptions.RequestException as e:
         print(f"Failed to terminate VM: {e}")
         return False
@@ -64,13 +105,11 @@ def terminate_vm():
 # ------------------ LeffaPredictor Class ------------------ #
 
 class LeffaPredictor:
-    def __init__(self):
-        # Download checkpoints if not already present
-        snapshot_download(repo_id="franciszzj/Leffa", local_dir="./ckpts")
+    def __init__(self):        
 
         self.mask_predictor = AutoMasker(
-            densepose_path="./ckpts/densepose",
-            schp_path="./ckpts/schp",
+            densepose_path="/backend/ckpts/densepose",
+            schp_path="/backend/ckpts/schp",
         )
 
         self.densepose_predictor = DensePosePredictor(
