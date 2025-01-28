@@ -243,77 +243,90 @@ def main():
     5. PUT uploads the result to UPLOAD_URL.
     6. Optionally calls terminate_vm().
     """
+    try:
+        # ----- Read environment -----
+        process_type = os.environ.get("PROCESS_TYPE", "dress")  # "dress" or "pose"
+        image_url_1 = os.environ.get("IMAGE_URL_1")
+        image_url_2 = os.environ.get("IMAGE_URL_2")
+        upload_url  = os.environ.get("UPLOAD_URL")
 
-    # ----- Read environment -----
-    process_type = os.environ.get("PROCESS_TYPE", "dress")  # "dress" or "pose"
-    image_url_1 = os.environ.get("IMAGE_URL_1")
-    image_url_2 = os.environ.get("IMAGE_URL_2")
-    upload_url  = os.environ.get("UPLOAD_URL")
+        if not image_url_1 or not image_url_2 or not upload_url:
+            print("Error: Must set IMAGE_URL_1, IMAGE_URL_2, and UPLOAD_URL environment variables.")
+            return
 
-    if not image_url_1 or not image_url_2 or not upload_url:
-        print("Error: Must set IMAGE_URL_1, IMAGE_URL_2, and UPLOAD_URL environment variables.")
-        return
-    
-    # Additional optional params
-    steps_str = os.environ.get("STEPS", "30")
-    scale_str = os.environ.get("SCALE", "2.5")
-    seed_str  = os.environ.get("SEED", "42")
+        # Additional optional params
+        steps_str = os.environ.get("STEPS", "30")
+        scale_str = os.environ.get("SCALE", "2.5")
+        seed_str  = os.environ.get("SEED", "42")
 
-    # Garment or model type only relevant if process_type == "dress"
-    vt_garment_type = os.environ.get("VT_GARMENT_TYPE", "upper_body")  # or "lower_body", "dresses"
-    vt_model_type   = os.environ.get("VT_MODEL_TYPE", "viton_hd")      # "viton_hd" or "dress_code"
-    vt_repaint_str  = os.environ.get("VT_REPAINT", "False")            # True/False
+        # Garment or model type only relevant if process_type == "dress"
+        vt_garment_type = os.environ.get("VT_GARMENT_TYPE", "upper_body")  # or "lower_body", "dresses"
+        vt_model_type   = os.environ.get("VT_MODEL_TYPE", "viton_hd")      # "viton_hd" or "dress_code"
+        vt_repaint_str  = os.environ.get("VT_REPAINT", "False")            # True/False
 
-    # Convert them to correct data types
-    step_count = int(steps_str)
-    scale_val  = float(scale_str)
-    seed_val   = int(seed_str)
-    vt_repaint = (vt_repaint_str.lower() == "true")
+        # Convert them to correct data types
+        step_count = int(steps_str)
+        scale_val  = float(scale_str)
+        seed_val   = int(seed_str)
+        vt_repaint = (vt_repaint_str.lower() == "true")
 
-    # Download the images
-    local_path_1 = "./src_image.jpg"
-    local_path_2 = "./ref_image.jpg"
-    download_file(image_url_1, local_path_1)
-    download_file(image_url_2, local_path_2)
+        # Download the images
+        local_path_1 = "./src_image.jpg"
+        local_path_2 = "./ref_image.jpg"
+        download_file(image_url_1, local_path_1)
+        download_file(image_url_2, local_path_2)
 
-    # Initialize Leffa
-    predictor = LeffaPredictor()
+        # Initialize Leffa
+        predictor = LeffaPredictor()
 
-    # Decide which control_type
-    if process_type.lower() == "dress":
-        control_type = "virtual_tryon"
-        # We'll pass garment type and model type
-    else:
-        control_type = "pose_transfer"
-        # vt_garment_type and vt_model_type won't be used in pose_transfer
+        # Decide which control_type
+        if process_type.lower() == "dress":
+            control_type = "virtual_tryon"
+            # We'll pass garment type and model type
+        else:
+            control_type = "pose_transfer"
+            # vt_garment_type and vt_model_type won't be used in pose_transfer
 
-    print(f"Running Leffa with control_type={control_type}, steps={step_count}, scale={scale_val}, seed={seed_val}")
+        print(f"Running Leffa with control_type={control_type}, steps={step_count}, scale={scale_val}, seed={seed_val}")
 
-    # Run the model
-    gen_image, mask, densepose = predictor.leffa_predict(
-        src_image_path=local_path_1,
-        ref_image_path=local_path_2,
-        control_type=control_type,
-        step=step_count,
-        scale=scale_val,
-        seed=seed_val,
-        vt_model_type=vt_model_type,
-        vt_garment_type=vt_garment_type,
-        vt_repaint=vt_repaint
-    )
+        # Run the model
+        gen_image, mask, densepose = predictor.leffa_predict(
+            src_image_path=local_path_1,
+            ref_image_path=local_path_2,
+            control_type=control_type,
+            step=step_count,
+            scale=scale_val,
+            seed=seed_val,
+            vt_model_type=vt_model_type,
+            vt_garment_type=vt_garment_type,
+            vt_repaint=vt_repaint
+        )
 
-    # Save final image
-    output_path = "./output.jpg"
-    gen_image.save(output_path)
-    print(f"Saved output to {output_path}")
+        # Save final image
+        output_path = "./output.jpg"
+        gen_image.save(output_path)
+        print(f"Saved output to {output_path}")
 
-    # Upload result
-    upload_via_put(output_path, upload_url)
+        # Upload result
+        upload_via_put(output_path, upload_url)
 
-    # Terminate VM
-    terminate_vm()
+        print("Done!")
 
-    print("Done!")
+    except Exception as e:
+        print(f"An error occurred during execution: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        print("Attempting to terminate VM...")
+        try:
+            # Terminate VM
+            terminate_vm()
+            print("VM termination initiated.")
+        except Exception as e:
+            print(f"Error during VM termination: {str(e)}")
+
+
 
 if __name__ == "__main__":
     main()
