@@ -26,7 +26,7 @@ This repository contains the **backend inference** service for [Leffa](https://h
 
    ```bash
    git clone git@github.com:stylestealer/backend.git
-   cd stylestealer/backend
+   cd backend
    ```
 
 2. **Build and Run**:
