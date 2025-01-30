@@ -29,11 +29,10 @@ This repository contains the **backend inference** service for [Leffa](https://h
    cd stylestealer/backend
    ```
 
-2. **(Optional) Build and Run with Docker**:
-
-   If deploying on a cloud server with Docker installed, build the container:
+2. **Build and Run**:
+   
 
    ```bash
-   docker build -t us-central1-docker.pkg.dev/tryitonme/stylestealer/stylestealer-backend:latest .
-   docker push us-central1-docker.pkg.dev/tryitonme/stylestealer/stylestealer-backend:latest
+   pip install -r requirements.txt
+   python3 app.py
    ```

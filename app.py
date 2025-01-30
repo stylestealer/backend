@@ -106,10 +106,12 @@ def terminate_vm():
 
 class LeffaPredictor:
     def __init__(self):        
+        # Download checkpoints
+s       napshot_download(repo_id="franciszzj/Leffa", local_dir="./ckpts")
 
         self.mask_predictor = AutoMasker(
-            densepose_path="/backend/ckpts/densepose",
-            schp_path="/backend/ckpts/schp",
+            densepose_path="./ckpts/densepose",
+            schp_path="./ckpts/schp",
         )
 
         self.densepose_predictor = DensePosePredictor(
@@ -321,8 +323,8 @@ def main():
         print("Attempting to terminate VM...")
         try:
             # Terminate VM
-            terminate_vm()
-            print("VM termination initiated.")
+            if not terminate_vm():
+                print("Failed to terminate the VM. Manual intervention is required. ")
         except Exception as e:
             print(f"Error during VM termination: {str(e)}")
 
