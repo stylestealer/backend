@@ -107,7 +107,7 @@ def terminate_vm():
 class LeffaPredictor:
     def __init__(self):        
         # Download checkpoints
-s       napshot_download(repo_id="franciszzj/Leffa", local_dir="./ckpts")
+        snapshot_download(repo_id="franciszzj/Leffa", local_dir="./ckpts")
 
         self.mask_predictor = AutoMasker(
             densepose_path="./ckpts/densepose",
