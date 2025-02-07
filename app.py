@@ -26,7 +26,7 @@ def download_file(url, local_path):
     blob.download_to_filename(local_path)
     print(f"Downloaded gs://{bucket_name}/{blob_name} to {local_path}")
 
-def upload_file(local_path, bucket_name, blob_name=None):
+def upload_file(local_path, bucket_name, blob_name):
     """
     Uploads the local file to the specified Cloud Storage bucket.
 
@@ -35,10 +35,7 @@ def upload_file(local_path, bucket_name, blob_name=None):
       bucket_name (str): Name of the destination bucket.
       blob_name (str): Name of the blob in the bucket.
                        If not provided, defaults to the file's basename.
-    """
-    if blob_name is None:
-        blob_name = os.path.basename(local_path)
-
+    """    
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
