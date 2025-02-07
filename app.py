@@ -15,17 +15,21 @@ from google.cloud import storage
 
 # ------------------ Download/Upload Helpers ------------------ #
 
-def download_file(url, local_path):
+def download_file(url, local_path, sa_path):
     """
     Downloads a file from `url` and saves it to `local_path`.
-    """
-    print(f"Downloading: {url} -> {local_path}")
-    r = requests.get(url)
-    r.raise_for_status()
-    with open(local_path, "wb") as f:
-        f.write(r.content)
+    """    
+    if not sa_path:
+        raise ValueError("Environment variable GOOGLE_APPLICATION_CREDENTIALS not set.")
 
-def upload_file(local_path, bucket_name, blob_name=None):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    blob.download_to_filename(local_path)
+    print(f"Downloaded gs://{bucket_name}/{blob_name} to {local_path}")
+
+def upload_file(local_path, bucket_name, blob_name=None, sa_path):
     """
     Uploads the local file to the specified Cloud Storage bucket.
 
@@ -34,8 +38,7 @@ def upload_file(local_path, bucket_name, blob_name=None):
       bucket_name (str): Name of the destination bucket.
       blob_name (str): Name of the blob in the bucket.
                        If not provided, defaults to the file's basename.
-    """
-    sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    """    
     if not sa_path:
         raise ValueError("Environment variable GOOGLE_APPLICATION_CREDENTIALS not set.")
 
@@ -257,6 +260,7 @@ def main():
     """
     try:
         # ----- Read environment -----
+        sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         process_type = os.environ.get("PROCESS_TYPE", "dress")  # "dress" or "pose"
         image_url_1 = os.environ.get("IMAGE_URL_1")
         image_url_2 = os.environ.get("IMAGE_URL_2")
@@ -284,10 +288,10 @@ def main():
         vt_repaint = (vt_repaint_str.lower() == "true")
 
         # Download the images
-        local_path_1 = "./src_image.jpg"
-        local_path_2 = "./ref_image.jpg"
-        download_file(image_url_1, local_path_1)
-        download_file(image_url_2, local_path_2)
+        local_path_1 = "/tmp/src_image.jpg"
+        local_path_2 = "/tmp/ref_image.jpg"
+        download_file(image_url_1, local_path_1, sa_path)
+        download_file(image_url_2, local_path_2, sa_path)
 
         # Initialize Leffa
         predictor = LeffaPredictor()
@@ -321,7 +325,7 @@ def main():
         print(f"Saved output to {output_path}")
 
         # Upload result
-        upload_file(output_path, bucket_name, blob_name)
+        upload_file(output_path, bucket_name, blob_name, sa_path)
 
         print("Done!")
 
