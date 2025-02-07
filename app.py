@@ -11,6 +11,7 @@ from leffa_utils.densepose_predictor import DensePosePredictor
 from leffa_utils.utils import resize_and_center, get_agnostic_mask_hd, get_agnostic_mask_dc
 from preprocess.humanparsing.run_parsing import Parsing
 from preprocess.openpose.run_openpose import OpenPose
+from google.cloud import storage
 
 # ------------------ Download/Upload Helpers ------------------ #
 
@@ -24,30 +25,28 @@ def download_file(url, local_path):
     with open(local_path, "wb") as f:
         f.write(r.content)
 
-def upload_file(local_path, upload_url):
+def upload_file(local_path, bucket_name, blob_name=None):
     """
-    Uploads the local file to `upload_url`.
+    Uploads the local file to the specified Cloud Storage bucket.
+
+    Parameters:
+      local_path (str): Path to the local file.
+      bucket_name (str): Name of the destination bucket.
+      blob_name (str): Name of the blob in the bucket.
+                       If not provided, defaults to the file's basename.
     """
     sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if not sa_path:
         raise ValueError("Environment variable GOOGLE_APPLICATION_CREDENTIALS not set.")
-    
-    # Load credentials and specify required scopes
-    creds = service_account.Credentials.from_service_account_file(
-        sa_path,
-        scopes=["https://www.googleapis.com/auth/devstorage.read_write"] 
-    )
-    
-    # Create an authorized session that auto-refreshes tokens
-    authed_session = AuthorizedSession(creds)
-    
-    headers = {"Content-Type": "application/octet-stream"}
-    
-    with open(local_path, "rb") as f:
-        response = authed_session.put(upload_url, data=f, headers=headers)
-    
-    response.raise_for_status()
-    print(f"Upload success (status code {response.status_code}).")
+
+    if blob_name is None:
+        blob_name = os.path.basename(local_path)
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    blob.upload_from_filename(local_path, content_type="application/octet-stream")
+    print(f"Upload success: '{local_path}' has been uploaded to bucket '{bucket_name}' as '{blob_name}'.")
 
 def terminate_vm():
     api_key = os.environ.get("API_KEY")
@@ -261,10 +260,11 @@ def main():
         process_type = os.environ.get("PROCESS_TYPE", "dress")  # "dress" or "pose"
         image_url_1 = os.environ.get("IMAGE_URL_1")
         image_url_2 = os.environ.get("IMAGE_URL_2")
-        upload_url  = os.environ.get("UPLOAD_URL")
+        bucket_name = os.environ.get("BUCKET_NAME")
+        blob_name  = os.environ.get("BLOB_NAME")
 
-        if not image_url_1 or not image_url_2 or not upload_url:
-            print("Error: Must set IMAGE_URL_1, IMAGE_URL_2, and UPLOAD_URL environment variables.")
+        if not image_url_1 or not image_url_2 or not bucket_name:
+            print("Error: Must set IMAGE_URL_1, IMAGE_URL_2, and BUCKET_NAME environment variables.")
             return
 
         # Additional optional params
@@ -321,7 +321,7 @@ def main():
         print(f"Saved output to {output_path}")
 
         # Upload result
-        upload_file(output_path, upload_url)
+        upload_file(output_path, bucket_name, blob_name)
 
         print("Done!")
 

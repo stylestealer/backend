@@ -5,7 +5,7 @@ cloudpickle
 diffusers
 einops
 fvcore
-google-auth
+google-cloud-storage
 imageio
 matplotlib
 numpy
