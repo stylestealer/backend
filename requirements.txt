@@ -5,7 +5,7 @@ cloudpickle
 diffusers
 einops
 fvcore
-google-cloud-storage
+google-cloud-storage==2.18.2
 imageio
 matplotlib
 numpy
