@@ -24,19 +24,30 @@ def download_file(url, local_path):
     with open(local_path, "wb") as f:
         f.write(r.content)
 
-def upload_via_put(local_path, upload_url):
+def upload_file(local_path, upload_url):
     """
-    Uploads the local file to `upload_url` (a one-time or pre-signed PUT URL).
+    Uploads the local file to `upload_url`.
     """
-    print(f"Uploading {local_path} to {upload_url} via PUT...")
+    sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if not sa_path:
+        raise ValueError("Environment variable GOOGLE_APPLICATION_CREDENTIALS not set.")
+    
+    # Load credentials and specify required scopes
+    creds = service_account.Credentials.from_service_account_file(
+        sa_path,
+        scopes=["https://www.googleapis.com/auth/cloud-platform"] 
+    )
+    
+    # Create an authorized session that auto-refreshes tokens
+    authed_session = AuthorizedSession(creds)
+    
     headers = {"Content-Type": "application/octet-stream"}
+    
     with open(local_path, "rb") as f:
-        response = requests.put(upload_url, data=f, headers=headers)
+        response = authed_session.put(upload_url, data=f, headers=headers)
+    
     response.raise_for_status()
     print(f"Upload success (status code {response.status_code}).")
-
-import os
-import requests
 
 def terminate_vm():
     api_key = os.environ.get("API_KEY")
@@ -310,7 +321,7 @@ def main():
         print(f"Saved output to {output_path}")
 
         # Upload result
-        upload_via_put(output_path, upload_url)
+        upload_file(output_path, upload_url)
 
         print("Done!")
 
