@@ -5,6 +5,7 @@ cloudpickle
 diffusers
 einops
 fvcore
+google-auth
 imageio
 matplotlib
 numpy

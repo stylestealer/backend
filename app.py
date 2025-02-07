@@ -35,7 +35,7 @@ def upload_file(local_path, upload_url):
     # Load credentials and specify required scopes
     creds = service_account.Credentials.from_service_account_file(
         sa_path,
-        scopes=["https://www.googleapis.com/auth/cloud-platform"] 
+        scopes=["https://www.googleapis.com/auth/devstorage.read_write"] 
     )
     
     # Create an authorized session that auto-refreshes tokens
