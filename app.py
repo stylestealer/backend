@@ -12,6 +12,22 @@ from leffa_utils.utils import resize_and_center, get_agnostic_mask_hd, get_agnos
 from preprocess.humanparsing.run_parsing import Parsing
 from preprocess.openpose.run_openpose import OpenPose
 from google.cloud import storage
+import google.cloud.logging
+import logging
+import builtins
+
+# ------------------ Google Cloud Logging Setup -------------- #
+# Initialize the Cloud Logging client and configure logging.
+client = google.cloud.logging.Client()
+client.setup_logging(log_level=logging.INFO)
+
+# Override the built-in print function to send logs to Cloud Logging as well as to the console.
+original_print = builtins.print
+
+def print(*args, **kwargs):
+    message = " ".join(str(arg) for arg in args)
+    logging.info(message)  # Log to Google Cloud Logging
+    original_print(*args, **kwargs)
 
 # ------------------ Download/Upload Helpers ------------------ #
 
