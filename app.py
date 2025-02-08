@@ -32,9 +32,9 @@ def print(*args, **kwargs):
 
 # ------------------ Download/Upload Helpers ------------------ #
 
-def download_file(url, local_path):
+def download_file(local_path, bucket_name, blob_name):
     """
-    Downloads a file from `url` and saves it to `local_path`.
+    Downloads a file and saves it to `local_path`.
     """  
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -297,8 +297,8 @@ def main():
         # Download the images
         local_path_1 = "/tmp/src_image.jpg"
         local_path_2 = "/tmp/ref_image.jpg"
-        download_file(image_url_1, local_path_1)
-        download_file(image_url_2, local_path_2)
+        download_file(image_url_1, local_path_1, bucket_name, blob_name)
+        download_file(image_url_2, local_path_2, bucket_name, blob_name)
 
         # Initialize Leffa
         predictor = LeffaPredictor()
