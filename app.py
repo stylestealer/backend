@@ -269,13 +269,13 @@ def main():
     try:
         # ----- Read environment -----        
         process_type = os.environ.get("PROCESS_TYPE", "dress")  # "dress" or "pose"
-        image_url_1 = os.environ.get("IMAGE_URL_1")
-        image_url_2 = os.environ.get("IMAGE_URL_2")
+        blob_name_1 = os.environ.get("BLOB_NAME_1")
+        blob_name_2 = os.environ.get("BLOB_NAME_2")
         bucket_name = os.environ.get("BUCKET_NAME")
-        blob_name  = os.environ.get("BLOB_NAME")
+        result_blob_name  = os.environ.get("RESULT_BLOB_NAME")
 
-        if not image_url_1 or not image_url_2 or not bucket_name:
-            print("Error: Must set IMAGE_URL_1, IMAGE_URL_2, and BUCKET_NAME environment variables.")
+        if not blob_name_1 or not blob_name_2 or not result_blob_name:
+            print("Error: Must set BLOB_NAME_1, BLOB_NAME_2, and RESULT_BLOB_NAME environment variables.")
             return
 
         # Additional optional params
@@ -297,8 +297,8 @@ def main():
         # Download the images
         local_path_1 = "/tmp/src_image.jpg"
         local_path_2 = "/tmp/ref_image.jpg"
-        download_file(image_url_1, local_path_1, bucket_name, blob_name)
-        download_file(image_url_2, local_path_2, bucket_name, blob_name)
+        download_file(local_path_1, bucket_name, blob_name_1)
+        download_file(local_path_2, bucket_name, blob_name_2)
 
         # Initialize Leffa
         predictor = LeffaPredictor()
@@ -332,7 +332,7 @@ def main():
         print(f"Saved output to {output_path}")
 
         # Upload result
-        upload_file(output_path, bucket_name, blob_name)
+        upload_file(output_path, bucket_name, result_blob_name)
 
         print("Done!")
 
