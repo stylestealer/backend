@@ -20,6 +20,7 @@ import builtins
 # Initialize the Cloud Logging client and configure logging.
 client = google.cloud.logging.Client()
 client.setup_logging(log_level=logging.INFO)
+logging.info("Cloud Logging initialized successfully")
 
 # Override the built-in print function to send logs to Cloud Logging as well as to the console.
 original_print = builtins.print
@@ -336,7 +337,7 @@ def main():
         print("Done!")
 
     except Exception as e:
-        print(f"An error occurred during execution: {str(e)}")
+        logging.error(f"An error occurred: {str(e)}", exc_info=True)
         import traceback
         traceback.print_exc()
 
@@ -348,7 +349,8 @@ def main():
                 print("Failed to terminate the VM. Manual intervention is required. ")
         except Exception as e:
             print(f"Error during VM termination: {str(e)}")
-
+        import time
+        time.sleep(5)
 
 
 if __name__ == "__main__":
